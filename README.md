@@ -1,4 +1,4 @@
-# Battleship — AI vs. Player
+# Battleship --> AI vs. Player
 
 A fully playable Battleship game built as a single self-contained HTML file, deployable to GitHub Pages with no build step, no dependencies, and no server required.
 
