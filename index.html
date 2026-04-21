@@ -364,6 +364,7 @@ let aiFirstHit = null;
 
 /* Listener cleanup */
 let listenerController = null;
+let aiTurnTimer = null;
 
 /* ===== DOM ===== */
 const statusBar = document.getElementById('status-bar');
@@ -740,7 +741,7 @@ function playerFire(cellIndex) {
   }
 
   playerTurn = false;
-  setTimeout(aiTurn, 600);
+  aiTurnTimer = setTimeout(aiTurn, 600);
 }
 
 /* ===== AI LOGIC ===== */
@@ -919,6 +920,8 @@ function endGame(playerWins) {
 
 /* ===== RESET ===== */
 function resetGame() {
+  clearTimeout(aiTurnTimer);
+  aiTurnTimer = null;
   gameStarted = false;
   gameOver = false;
   playerTurn = true;
@@ -948,6 +951,7 @@ function resetGame() {
   createBoard(playerBoardEl, 'player');
   createBoard(aiBoardEl, 'ai');
   attachBoardListeners();
+  setInitialTabindex();
   initPlacement();
 }
 
