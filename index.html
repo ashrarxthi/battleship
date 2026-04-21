@@ -364,6 +364,8 @@ let aiFirstHit = null;
 
 /* Listener cleanup */
 let listenerController = null;
+let aiTurnTimer = null;
+let aiStatusTimer = null;
 
 /* ===== DOM ===== */
 const statusBar = document.getElementById('status-bar');
@@ -740,7 +742,7 @@ function playerFire(cellIndex) {
   }
 
   playerTurn = false;
-  setTimeout(aiTurn, 600);
+  aiTurnTimer = setTimeout(aiTurn, 600);
 }
 
 /* ===== AI LOGIC ===== */
@@ -870,8 +872,8 @@ function aiTurn() {
   }
 
   playerTurn = true;
-  setTimeout(() => {
-    if (!gameOver) setStatus('Your turn \u2014 click a cell on the enemy board to fire!');
+  aiStatusTimer = setTimeout(() => {
+    if (!gameOver && gameStarted) setStatus('Your turn \u2014 click a cell on the enemy board to fire!');
   }, 800);
 }
 
@@ -919,6 +921,10 @@ function endGame(playerWins) {
 
 /* ===== RESET ===== */
 function resetGame() {
+  clearTimeout(aiTurnTimer);
+  clearTimeout(aiStatusTimer);
+  aiTurnTimer = null;
+  aiStatusTimer = null;
   gameStarted = false;
   gameOver = false;
   playerTurn = true;
@@ -948,6 +954,7 @@ function resetGame() {
   createBoard(playerBoardEl, 'player');
   createBoard(aiBoardEl, 'ai');
   attachBoardListeners();
+  setInitialTabindex();
   initPlacement();
 }
 
