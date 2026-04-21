@@ -17,27 +17,43 @@ Before prompting Devin, I wrote a detailed PRD specifying exactly how the game s
 
 ## Bugs Found and Fixed
 
-After Devin generated the game, I ran **Devin Review** — Devin's built-in static analysis layer. It identified two bugs that didn't surface during manual gameplay testing. Both were fixed before submission.
+After Devin generated the game, I ran **Devin Review** — Devin's built-in static analysis layer. It identified three bugs that didn't surface during manual gameplay testing. All three were fixed before submission.
 
 ---
 
-### Bug 1 — Stale `setTimeout` overwrites status message after quick reset
+### Bug 1 — Stale 600ms AI turn timer fires after reset
 
 **Severity:** Medium
 **Found by:** Devin Review
 **Fixed in:** PR #3
 
 **What it was:**
-Each AI turn schedules a 600ms delayed status update guarded by `if (!gameOver)`. If the player won quickly after an AI turn and immediately clicked "Play Again", `resetGame()` set `gameOver = false`. The stale timer then passed the check and overwrote the new game's placement status ("Place your ships to begin.") with "Your turn — click a cell to fire!" — a misleading message at the start of a fresh game.
+Each AI turn schedules a 600ms delay before firing. If the player won immediately after an AI turn and clicked "Play Again", the timer was still running. It would fire after the reset, placing a phantom AI shot on the freshly reset player board.
 
 **How it was fixed:**
-Stored the `setTimeout` reference in a variable called `aiTurnTimer`. Added `clearTimeout(aiTurnTimer)` at the top of `resetGame()` so any in-flight timer is cancelled before the game resets.
+Stored the timer reference in `aiTurnTimer`. Added `clearTimeout(aiTurnTimer)` at the top of `resetGame()` so any pending AI shot is cancelled on reset.
 
-**Verified:** Playwright test confirmed status reads "Place your ships to begin." immediately after reset and remains unchanged after 1 second. ✓
+**Verified:** Playwright confirmed no hit or miss markers on the player board after reset, with `aiTurnTimer` value of 51 pending at time of reset. ✓
 
 ---
 
-### Bug 2 — Missing `setInitialTabindex()` in `resetGame()` breaks keyboard navigation
+### Bug 2 — Stale 800ms AI status timer overwrites placement message after reset
+
+**Severity:** Medium
+**Found by:** Devin Review
+**Fixed in:** PR #3
+
+**What it was:**
+A separate 800ms timer updates the status bar to "Your turn — click a cell to fire!" after the AI fires. If the player won and clicked "Play Again" before this timer expired, it would overwrite the new game's status message ("Place your ships to begin.") with the wrong message — misleading the player at the start of a fresh game.
+
+**How it was fixed:**
+Stored this timer reference in `aiStatusTimer`. Added `clearTimeout(aiStatusTimer)` inside `resetGame()` alongside the aiTurnTimer clear, ensuring neither stale timer can bleed into a new session.
+
+**Verified:** Playwright confirmed status reads "Place your ships to begin." immediately after reset and remains unchanged after 1 second. ✓
+
+---
+
+### Bug 3 — Missing `setInitialTabindex()` in `resetGame()` breaks keyboard navigation
 
 **Severity:** Low–Medium
 **Found by:** Devin Review
@@ -49,13 +65,13 @@ The initial game setup called `setInitialTabindex()` after `createBoard()`, sett
 **How it was fixed:**
 Added `setInitialTabindex()` to the `resetGame()` sequence immediately after `attachBoardListeners()`, mirroring the original initialization order.
 
-**Verified:** Playwright test confirmed `tabindex="0"` on cell A1 of both boards after reset, with arrow key navigation working correctly. ✓
+**Verified:** Playwright confirmed `tabindex="0"` on cell A1 of both boards after reset, with arrow key navigation working correctly. ✓
 
 ---
 
 ### Why these bugs weren't caught during manual testing
 
-Both are timing and reset-path bugs — they only appear under specific sequences that don't happen in normal gameplay. The timer bug requires winning within 800ms of an AI turn and immediately clicking Play Again. The tabindex bug requires completing a full game and using keyboard navigation in the second game. Neither appears in a standard playthrough. Static analysis caught what manual testing couldn't.
+All three are timing and reset-path bugs — they only appear under specific sequences that don't occur in normal gameplay. The timer bugs require winning within milliseconds of an AI turn and immediately clicking Play Again. The tabindex bug requires completing a full game and switching to keyboard navigation in the second game. None appear in a standard playthrough. Static analysis caught what manual testing couldn't.
 
 ---
 
